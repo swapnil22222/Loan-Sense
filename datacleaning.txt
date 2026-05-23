@@ -1,0 +1,152 @@
+“We performed preprocessing by cleaning formatted numeric fields, encoding categorical variables, coercing invalid values, and removing null rows before training XGBoost.”
+🎯 Problem 1: Numbers Stored as Text
+
+Example values:
+
+24,240.19
+76,626.81
+
+To humans: numbers.
+To Python CSV reader: often strings because of commas.
+
+So instead of numeric:
+
+24240.19
+
+it became:
+
+"24,240.19"
+
+XGBoost refuses that.
+
+✅ Fix 1: Remove Commas
+
+We did:
+
+df[col] = df[col].astype(str).str.replace(",", "")
+What this does:
+df[col]
+
+take one column
+
+.astype(str)
+
+convert every value to text temporarily
+
+.str.replace(",", "")
+
+remove commas
+
+Example
+
+Before:
+
+24,240.19
+
+After:
+
+24240.19
+
+Now it can become a number.
+
+🎯 Problem 2: Category Columns Were Words
+
+Columns like:
+
+gender
+marital_status
+loan_purpose
+employment_status
+
+Values:
+
+Male
+Female
+Married
+Car
+Business
+
+Models need numbers, not English.
+
+✅ Fix 2: Encode Text Labels
+
+We found text columns:
+
+text_cols = df.select_dtypes(include=["object"]).columns
+
+Meaning:
+
+Get all columns whose type is object/text.
+
+Then for each text column:
+
+le = LabelEncoder()
+df[col] = le.fit_transform(df[col].astype(str))
+Example
+gender column:
+
+Before:
+
+Male
+Female
+Other
+
+After:
+
+1
+0
+2
+
+Now machine can use it.
+
+🎯 Problem 3: Some Values Became Invalid
+
+After conversions, some rows may fail.
+
+So:
+
+df[col] = pd.to_numeric(df[col], errors="coerce")
+
+Means:
+
+If conversion fails, make it blank (NaN).
+
+Then:
+
+df = df.dropna()
+
+Remove broken rows.
+
+Merciless but effective.
+
+🎯 Final Result
+
+Your messy row:
+
+Male
+24,240.19
+Car
+
+became:
+
+1
+24240.19
+1
+
+All numeric.
+
+Then XGBoost could train.
+
+Why It Worked This Time
+
+Earlier versions partially converted data. Some columns stayed string dtype.
+
+Final version:
+
+Remove commas
+Detect all text columns
+Encode them
+Force numeric
+Drop invalid rows
+
+That’s why success came.
